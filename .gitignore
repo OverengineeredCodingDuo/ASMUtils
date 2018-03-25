@@ -1,0 +1,14 @@
+#eclipse
+/bin/
+/.settings/
+/.classpath
+
+#idea
+/.idea/
+/classes/
+*.iml
+
+#gradle
+/build/
+/.gradle/
+/out/
