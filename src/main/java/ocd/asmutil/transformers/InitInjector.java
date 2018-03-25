@@ -99,7 +99,6 @@ public class InitInjector implements MethodNodeTransformer
 	public MethodNode transform(final String className, final MethodNode methodNode, final Logger logger) throws MethodTransformerException, AnalyzerException
 	{
 		final Interpreter<TrackingValue> interpreter = new TrackingInterpreter();
-
 		final TrackingValue retType = interpreter.newValue(Type.getReturnType(methodNode.desc));
 
 		final Frame<TrackingValue> frame = FrameUtil.getFrame(null, className, methodNode, retType, interpreter);

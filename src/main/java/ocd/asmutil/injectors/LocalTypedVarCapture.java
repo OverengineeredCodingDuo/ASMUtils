@@ -134,7 +134,7 @@ public class LocalTypedVarCapture implements InsnInjector
 			if (type == null || !desc.equals(type.getDescriptor()))
 				continue;
 
-			if (var != -1)
+			if (var != -1 && var != varInsn.var)
 				throw new MethodTransformerException("Found multiple locals with requested type: " + desc, methodNode, insn);
 
 			var = varInsn.var;

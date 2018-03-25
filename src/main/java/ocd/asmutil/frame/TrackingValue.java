@@ -143,7 +143,7 @@ public class TrackingValue extends BasicValue
 		@Override
 		public TrackingValue copyOperation(final AbstractInsnNode insn, final TrackingValue value) throws AnalyzerException
 		{
-			return value;
+			return newTrackingValue(this.interpreter.copyOperation(insn, value), insn);
 		}
 
 		@Override

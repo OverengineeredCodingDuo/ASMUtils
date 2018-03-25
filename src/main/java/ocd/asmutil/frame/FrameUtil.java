@@ -151,7 +151,7 @@ public class FrameUtil
 			this.frame = new Frame<>(nLocals, nStack);
 		}
 
-		public DynamicFrame(final Frame<? extends V> src, final V retVal)
+		public DynamicFrame(final Frame<? extends V> src, final @Nullable V retVal)
 		{
 			this(src.getLocals(), src.getMaxStackSize());
 			this.init(src);

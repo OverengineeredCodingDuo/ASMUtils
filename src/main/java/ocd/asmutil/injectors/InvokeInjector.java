@@ -41,18 +41,10 @@ import ocd.asmutil.frame.TrackingValue;
 public class InvokeInjector implements InsnInjector
 {
 	private final MethodDescriptor md;
-	private final int opcode;
 
 	public InvokeInjector(final MethodDescriptor md)
 	{
 		this.md = md;
-
-		if (md.isStatic)
-			this.opcode = Opcodes.INVOKESTATIC;
-		else if (md.iface)
-			this.opcode = Opcodes.INVOKEINTERFACE;
-		else
-			this.opcode = Opcodes.INVOKEVIRTUAL;
 	}
 
 	public InvokeInjector(
@@ -96,7 +88,7 @@ public class InvokeInjector implements InsnInjector
 		@Nullable final String owner = this.md.owner;
 
 		final AbstractInsnNode invokeInsn = new MethodInsnNode(
-			this.opcode,
+			this.md.opcode,
 			owner == null ? className : owner,
 			this.md.name,
 			this.md.desc,
@@ -119,6 +111,8 @@ public class InvokeInjector implements InsnInjector
 		public final boolean iface;
 		public final boolean isStatic;
 
+		public final int opcode;
+
 		public MethodDescriptor(
 			final @Nullable String owner,
 			final String name,
@@ -132,6 +126,13 @@ public class InvokeInjector implements InsnInjector
 			this.desc = desc;
 			this.iface = iface;
 			this.isStatic = isStatic;
+
+			if (isStatic)
+				this.opcode = Opcodes.INVOKESTATIC;
+			else if (iface)
+				this.opcode = Opcodes.INVOKEINTERFACE;
+			else
+				this.opcode = Opcodes.INVOKEVIRTUAL;
 		}
 
 		public MethodDescriptor(
@@ -150,6 +151,19 @@ public class InvokeInjector implements InsnInjector
 		)
 		{
 			this(null, name, desc, false);
+		}
+
+		@Override
+		public String toString()
+		{
+			final StringBuilder sb = new StringBuilder();
+
+			if (this.owner != null)
+				sb.append(this.owner).append('.');
+
+			sb.append(this.name).append(this.desc);
+
+			return sb.toString();
 		}
 	}
 }

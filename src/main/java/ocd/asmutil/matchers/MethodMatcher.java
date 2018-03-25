@@ -103,5 +103,21 @@ public class MethodMatcher implements Simple
 
 			return this.matches((MethodInsnNode) insn);
 		}
+
+		@Override
+		public String toString()
+		{
+			final StringBuilder sb = new StringBuilder();
+
+			if (this.owner != null)
+				sb.append(this.owner).append('.');
+
+			sb.append(this.name);
+
+			if (this.desc != null)
+				sb.append(this.desc);
+
+			return sb.toString();
+		}
 	}
 }
