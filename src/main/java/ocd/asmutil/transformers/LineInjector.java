@@ -23,7 +23,7 @@
  *
  */
 
-package ocd.asmutil;
+package ocd.asmutil.transformers;
 
 import javax.annotation.Nullable;
 
@@ -39,8 +39,14 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
 
-import ocd.asmutil.FrameUtil.DynamicFrame;
-import ocd.asmutil.TrackingValue.TrackingInterpreter;
+import ocd.asmutil.InjectionLocator;
+import ocd.asmutil.MethodNodeTransformer;
+import ocd.asmutil.MethodTransformerException;
+import ocd.asmutil.SlicedInsnInjector;
+import ocd.asmutil.frame.FrameUtil;
+import ocd.asmutil.frame.FrameUtil.DynamicFrame;
+import ocd.asmutil.frame.TrackingValue;
+import ocd.asmutil.frame.TrackingValue.TrackingInterpreter;
 
 public class LineInjector implements MethodNodeTransformer
 {

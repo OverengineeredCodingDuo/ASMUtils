@@ -23,7 +23,7 @@
  *
  */
 
-package ocd.asmutil;
+package ocd.asmutil.transformers;
 
 import javax.annotation.Nullable;
 
@@ -33,15 +33,19 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
 
-import ocd.asmutil.MethodSignature.MethodDescriptor;
-import ocd.asmutil.TrackingValue.TrackingInterpreter;
+import ocd.asmutil.InsnInjector;
+import ocd.asmutil.MethodNodeTransformer;
+import ocd.asmutil.MethodTransformerException;
+import ocd.asmutil.frame.FrameUtil;
+import ocd.asmutil.frame.TrackingValue;
+import ocd.asmutil.frame.TrackingValue.TrackingInterpreter;
+import ocd.asmutil.matchers.MethodMatcher.MethodDescriptor;
 
 public class InitInjector implements MethodNodeTransformer
 {
@@ -78,12 +82,8 @@ public class InitInjector implements MethodNodeTransformer
 		}
 	}
 
-	private final Descriptor descriptor;
-
-	public InitInjector(final Descriptor desc)
-	{
-		this.descriptor = desc;
-	}
+	private final MethodDescriptor md;
+	private final InsnInjector[] injectors;
 
 	public InitInjector(
 		final String owner,
@@ -91,7 +91,8 @@ public class InitInjector implements MethodNodeTransformer
 		final InsnInjector... injectors
 	)
 	{
-		this(new Descriptor(new MethodDescriptor(owner, "<init>", desc, false), injectors));
+		this.md = new MethodDescriptor(owner, "<init>", desc);
+		this.injectors = injectors;
 	}
 
 	@Override
@@ -109,21 +110,7 @@ public class InitInjector implements MethodNodeTransformer
 		{
 			FrameUtil.execute(insn, frame, className, methodNode, retType, interpreter);
 
-			if (!(insn instanceof MethodInsnNode))
-				continue;
-
-			final MethodInsnNode methodInsnNode = (MethodInsnNode) insn;
-
-			if (methodInsnNode.getOpcode() != Opcodes.INVOKESPECIAL)
-				continue;
-
-			if (!"<init>".equals(methodInsnNode.name))
-				continue;
-
-			if (!this.descriptor.desc.owner.equals(methodInsnNode.owner))
-				continue;
-
-			if (this.descriptor.desc.desc != null && !this.descriptor.desc.desc.equals(methodInsnNode.desc))
+			if (!this.md.matches(insn))
 				continue;
 
 			final AbstractInsnNode next = insn.getNext();
@@ -132,29 +119,17 @@ public class InitInjector implements MethodNodeTransformer
 
 			insns.insertBefore(next, dupInsn);
 
-			if (frame.getStackSize() == 0 || !this.descriptor.desc.owner.equals(frame.getStack(frame.getStackSize() - 1).getType().getInternalName()))
-				throw new MethodTransformerException("Missing instance of new object on operand stack: " + this.descriptor.desc.owner, methodNode, next);
+			if (frame.getStackSize() == 0 || !frame.getStack(frame.getStackSize() - 1).getType().getInternalName().equals(this.md.owner))
+				throw new MethodTransformerException("Missing instance of new object on operand stack: " + this.md.owner, methodNode, next);
 
 			frame.execute(dupInsn, interpreter);
 
-			for (int i = 0; i < this.descriptor.injectors.length; ++i)
-				this.descriptor.injectors[i].inject(className, methodNode, next, frame, interpreter);
+			for (final InsnInjector injector : this.injectors)
+				injector.inject(className, methodNode, next, frame, interpreter);
 
 			insn = next.getPrevious();
 		}
 
 		return methodNode;
-	}
-
-	public static class Descriptor
-	{
-		public final MethodDescriptor desc;
-		public final InsnInjector[] injectors;
-
-		public Descriptor(final MethodDescriptor desc, final InsnInjector... injectors)
-		{
-			this.desc = desc;
-			this.injectors = injectors;
-		}
 	}
 }

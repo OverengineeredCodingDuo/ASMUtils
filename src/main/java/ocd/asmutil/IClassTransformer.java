@@ -25,45 +25,15 @@
 
 package ocd.asmutil;
 
-import javax.annotation.Nullable;
+import org.apache.logging.log4j.Logger;
+import org.objectweb.asm.ClassVisitor;
 
-import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
-
-class MethodSignature
+public interface IClassTransformer
 {
-	public final String name;
-	public final @Nullable String desc;
+	ClassVisitor createClassVisitor(final Logger logger, final boolean verify, final int api, final ClassVisitor cv);
 
-	public MethodSignature(final String name, @Nullable final String desc)
+	interface Named extends IClassTransformer
 	{
-		this.name = name;
-		this.desc = desc;
-	}
-
-	public MethodSignature(final String owner, final String name, @Nullable final String desc, final boolean obfuscated)
-	{
-		this(obfuscated ? FMLDeobfuscatingRemapper.INSTANCE.mapMethodName(owner, name, desc) : name, desc);
-	}
-
-	public @Nullable String owner()
-	{
-		return null;
-	}
-
-	public static class MethodDescriptor extends MethodSignature
-	{
-		public final String owner;
-
-		public MethodDescriptor(final String owner, final String name, @Nullable final String desc, final boolean obfuscated)
-		{
-			super(owner, name, desc, obfuscated);
-			this.owner = owner;
-		}
-
-		@Override
-		public String owner()
-		{
-			return this.owner;
-		}
+		String getName();
 	}
 }

@@ -45,40 +45,62 @@ import org.objectweb.asm.tree.analysis.BasicVerifier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
-import ocd.asmutil.MethodSignature.MethodDescriptor;
+import ocd.asmutil.matchers.MethodMatcher.MethodDescriptor;
 
-public class MethodTransformer
+public class MethodTransformer implements IClassTransformer
 {
-	private final String internalName;
-	private final Logger logger;
-	private final boolean verify;
-
 	private final Multimap<String, Pair<MethodDescriptor, MethodNodeTransformer[]>> transformers = ArrayListMultimap.create();
 
-	public MethodTransformer(final String internalName, final Logger logger, final boolean verify)
-	{
-		this.internalName = internalName;
-		this.logger = logger;
-		this.verify = verify;
-	}
-
 	public MethodTransformer addTransformer(
-		final String name,
-		final @Nullable String desc,
-		final boolean obfuscated,
+		final MethodDescriptor md,
 		final MethodNodeTransformer... transformers
 	)
 	{
-		final MethodDescriptor md = new MethodDescriptor(this.internalName, name, desc, obfuscated);
 		this.transformers.put(md.name, new ImmutablePair<>(md, transformers));
 
 		return this;
 	}
 
-	public ClassVisitor createCV(final int api, final ClassVisitor cv)
+	public MethodTransformer addTransformer(
+		final String name,
+		final @Nullable String desc,
+		final MethodNodeTransformer... transformers
+	)
+	{
+		return this.addTransformer(new MethodDescriptor(null, name, desc), transformers);
+	}
+
+	public static class Named extends MethodTransformer implements IClassTransformer.Named
+	{
+		private final String name;
+
+		public Named(final String name)
+		{
+			this.name = name;
+		}
+
+		@Override
+		public String getName()
+		{
+			return this.name;
+		}
+	}
+
+	@Override
+	public ClassVisitor createClassVisitor(final Logger logger, final boolean verify, final int api, final ClassVisitor cv)
 	{
 		return new ClassVisitor(api, cv)
 		{
+			private String internalName;
+
+			@Override
+			public void visit(final int version, final int access, final String name, final String signature, final String superName, final String[] interfaces)
+			{
+				super.visit(version, access, name, signature, superName, interfaces);
+
+				this.internalName = name;
+			}
+
 			@Override
 			public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions)
 			{
@@ -94,7 +116,7 @@ public class MethodTransformer
 					{
 						final MethodDescriptor md = candidate.getKey();
 
-						if (md.desc == null || md.desc.equals(desc))
+						if (md.matches(this.internalName, name, desc))
 						{
 							if (matches == null)
 								matches = new ArrayList<>();
@@ -104,7 +126,18 @@ public class MethodTransformer
 					}
 
 					if (matches != null)
-						return MethodTransformer.this.transformMV(mv, matches, access, name, desc, signature, exceptions);
+						return MethodTransformer.this.createMethodVisitor(
+							logger,
+							verify,
+							this.internalName,
+							mv,
+							matches,
+							access,
+							name,
+							desc,
+							signature,
+							exceptions
+						);
 				}
 
 				return mv;
@@ -112,7 +145,18 @@ public class MethodTransformer
 		};
 	}
 
-	private MethodVisitor transformMV(final MethodVisitor mv_, final List<MethodNodeTransformer[]> transformers, final int access, final String name, final String desc, final String signature, final String[] exceptions)
+	private MethodVisitor createMethodVisitor(
+		final Logger logger,
+		final boolean verify,
+		final String internalName,
+		final MethodVisitor mv_,
+		final List<MethodNodeTransformer[]> transformers,
+		final int access,
+		final String name,
+		final String desc,
+		final String signature,
+		final String[] exceptions
+	)
 	{
 		return new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions)
 		{
@@ -127,19 +171,19 @@ public class MethodTransformer
 				{
 					for (final MethodNodeTransformer[] transformers_ : transformers)
 						for (final MethodNodeTransformer transformer : transformers_)
-							methodNode = transformer.transform(MethodTransformer.this.internalName, methodNode, MethodTransformer.this.logger);
+							methodNode = transformer.transform(internalName, methodNode, logger);
 
-					if (MethodTransformer.this.verify)
+					if (verify)
 					{
 						final Analyzer<BasicValue> analyzer = new Analyzer<>(new BasicVerifier());
 
-						analyzer.analyze(MethodTransformer.this.internalName, methodNode);
+						analyzer.analyze(internalName, methodNode);
 					}
 				} catch (final MethodTransformerException | AnalyzerException e)
 				{
-					final String msg = "Error while modifying method " + this.name + " of class " + MethodTransformer.this.internalName;
+					final String msg = "Error while modifying method " + this.name + " of class " + internalName;
 
-					MethodTransformer.this.logger.error(msg, e);
+					logger.fatal(msg, e);
 
 					throw new IllegalArgumentException(msg, e);
 				}

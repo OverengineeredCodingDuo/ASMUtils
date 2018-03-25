@@ -23,43 +23,10 @@
  *
  */
 
-package ocd.asmutil;
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+package ocd.asmutil.injectors;
 
-import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
-
-import ocd.asmutil.MethodSignature.MethodDescriptor;
-
-public class MethodMatcher implements InjectionLocator.Simple
-{
-	private final MethodDescriptor md;
-
-	public MethodMatcher(final MethodDescriptor md)
-	{
-		this.md = md;
-	}
-
-	public MethodMatcher(final String owner, final String name, final @Nullable String desc, final boolean obfuscated)
-	{
-		this(new MethodDescriptor(owner, name, desc, obfuscated));
-	}
-
-	@Override
-	public boolean test(final AbstractInsnNode insn)
-	{
-		if (!(insn instanceof MethodInsnNode))
-			return false;
-
-		final MethodInsnNode methodInsnNode = (MethodInsnNode) insn;
-
-		if (!this.md.owner.equals(methodInsnNode.owner))
-			return false;
-
-		if (this.md.desc != null && !this.md.desc.equals(methodInsnNode.desc))
-			return false;
-
-		return this.md.name.equals(methodInsnNode.name);
-	}
-}
+import mcp.MethodsReturnNonnullByDefault;

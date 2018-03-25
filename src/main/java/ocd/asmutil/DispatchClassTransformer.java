@@ -25,55 +25,69 @@
 
 package ocd.asmutil;
 
-import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
-import net.minecraft.launchwrapper.IClassTransformer;
-
-public class MethodClassTransformer implements IClassTransformer
+public class DispatchClassTransformer implements net.minecraft.launchwrapper.IClassTransformer
 {
-	private final String name;
+	private final Logger logger;
+	private final boolean verify;
 
-	public final MethodTransformer transformer;
+	private final Map<String, List<IClassTransformer>> transformers = new HashMap<>();
 
-	public MethodClassTransformer addTransformer(
+	public DispatchClassTransformer(final Logger logger, final boolean verify)
+	{
+		this.logger = logger;
+		this.verify = verify;
+	}
+
+	public DispatchClassTransformer addTransformer(
 		final String name,
-		final @Nullable String desc,
-		final boolean obfuscated,
-		final MethodNodeTransformer... transformers
+		final IClassTransformer... transformers
 	)
 	{
-		this.transformer.addTransformer(name, desc, obfuscated, transformers);
+		final List<IClassTransformer> transformerList = this.transformers.computeIfAbsent(name, k -> new ArrayList<>());
+		transformerList.addAll(Arrays.asList(transformers));
 
 		return this;
 	}
 
-	public MethodClassTransformer(final String name)
+	public DispatchClassTransformer addTransformer(
+		final IClassTransformer.Named... transformers
+	)
 	{
-		this(name, null, true);
-	}
+		for (final IClassTransformer.Named transformer : transformers)
+			this.addTransformer(transformer.getName(), transformer);
 
-	public MethodClassTransformer(final String name, final Logger logger, final boolean verify)
-	{
-		this.name = name;
-
-		this.transformer = new MethodTransformer(name.replace('.', '/'), logger, verify);
+		return this;
 	}
 
 	@Override
 	public byte[] transform(final String name, final String transformedName, final byte[] basicClass)
 	{
-		if (!this.name.equals(transformedName))
+		final List<IClassTransformer> transformers = this.transformers.get(name);
+
+		if (transformers == null)
 			return basicClass;
 
 		final ClassReader cr = new ClassReader(basicClass);
 		final ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS);
 
-		cr.accept(this.transformer.createCV(Opcodes.ASM5, cw), ClassReader.EXPAND_FRAMES);
+		ClassVisitor cv = cw;
+
+		for (int i = transformers.size() - 1; i >= 0; --i)
+			cv = transformers.get(i).createClassVisitor(this.logger, this.verify, Opcodes.ASM5, cv);
+
+		cr.accept(cv, ClassReader.EXPAND_FRAMES);
 		return cw.toByteArray();
 	}
 }

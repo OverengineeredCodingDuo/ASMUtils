@@ -31,6 +31,8 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
 
+import ocd.asmutil.frame.TrackingValue;
+
 public interface SlicedInsnInjector
 {
 	void inject(

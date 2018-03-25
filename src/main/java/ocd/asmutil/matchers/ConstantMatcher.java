@@ -23,33 +23,30 @@
  *
  */
 
-package ocd.asmutil;
+package ocd.asmutil.matchers;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.LdcInsnNode;
 
-public interface InjectionLocator
+import ocd.asmutil.InjectionLocator.Simple;
+
+public class ConstantMatcher implements Simple
 {
-	boolean test(MethodNode node, AbstractInsnNode insn);
+	private final Object cst;
 
-	default InjectionLocator and(final InjectionLocator locator)
+	public ConstantMatcher(final Object cst)
 	{
-		return (node, insn) -> InjectionLocator.this.test(node, insn) && locator.test(node, insn);
+		this.cst = cst;
 	}
 
-	default InjectionLocator or(final InjectionLocator locator)
+	@Override
+	public boolean test(final AbstractInsnNode insn)
 	{
-		return (node, insn) -> InjectionLocator.this.test(node, insn) || locator.test(node, insn);
-	}
+		if (!(insn instanceof LdcInsnNode))
+			return false;
 
-	interface Simple extends InjectionLocator
-	{
-		boolean test(AbstractInsnNode insn);
+		final LdcInsnNode ldcInsnNode = (LdcInsnNode) insn;
 
-		@Override
-		default boolean test(final MethodNode node, final AbstractInsnNode insn)
-		{
-			return this.test(insn);
-		}
+		return ldcInsnNode.cst.equals(this.cst);
 	}
 }

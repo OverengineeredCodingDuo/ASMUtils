@@ -23,28 +23,24 @@
  *
  */
 
-package ocd.asmutil;
+package ocd.asmutil.matchers;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.LdcInsnNode;
 
-public class ConstantMatcher implements InjectionLocator.Simple
+import ocd.asmutil.InjectionLocator.Simple;
+
+public class InsnMatcher implements Simple
 {
-	private final Object cst;
+	private final int opcode;
 
-	public ConstantMatcher(final Object cst)
+	public InsnMatcher(final int opcode)
 	{
-		this.cst = cst;
+		this.opcode = opcode;
 	}
 
 	@Override
 	public boolean test(final AbstractInsnNode insn)
 	{
-		if (!(insn instanceof LdcInsnNode))
-			return false;
-
-		final LdcInsnNode ldcInsnNode = (LdcInsnNode) insn;
-
-		return ldcInsnNode.cst.equals(this.cst);
+		return this.opcode == insn.getOpcode();
 	}
 }

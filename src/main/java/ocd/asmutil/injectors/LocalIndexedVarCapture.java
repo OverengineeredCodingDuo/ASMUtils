@@ -23,7 +23,7 @@
  *
  */
 
-package ocd.asmutil;
+package ocd.asmutil.injectors;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -33,6 +33,9 @@ import org.objectweb.asm.tree.VarInsnNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
+
+import ocd.asmutil.InsnInjector;
+import ocd.asmutil.frame.TrackingValue;
 
 public class LocalIndexedVarCapture implements InsnInjector
 {

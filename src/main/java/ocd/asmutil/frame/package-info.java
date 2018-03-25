@@ -23,33 +23,10 @@
  *
  */
 
-package ocd.asmutil;
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+package ocd.asmutil.frame;
 
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.MethodNode;
+import javax.annotation.ParametersAreNonnullByDefault;
 
-public interface InjectionLocator
-{
-	boolean test(MethodNode node, AbstractInsnNode insn);
-
-	default InjectionLocator and(final InjectionLocator locator)
-	{
-		return (node, insn) -> InjectionLocator.this.test(node, insn) && locator.test(node, insn);
-	}
-
-	default InjectionLocator or(final InjectionLocator locator)
-	{
-		return (node, insn) -> InjectionLocator.this.test(node, insn) || locator.test(node, insn);
-	}
-
-	interface Simple extends InjectionLocator
-	{
-		boolean test(AbstractInsnNode insn);
-
-		@Override
-		default boolean test(final MethodNode node, final AbstractInsnNode insn)
-		{
-			return this.test(insn);
-		}
-	}
-}
+import mcp.MethodsReturnNonnullByDefault;

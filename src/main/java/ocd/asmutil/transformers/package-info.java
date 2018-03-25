@@ -23,22 +23,10 @@
  *
  */
 
-package ocd.asmutil;
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+package ocd.asmutil.transformers;
 
-import org.objectweb.asm.tree.AbstractInsnNode;
+import javax.annotation.ParametersAreNonnullByDefault;
 
-public class InsnMatcher implements InjectionLocator.Simple
-{
-	private final int opcode;
-
-	public InsnMatcher(final int opcode)
-	{
-		this.opcode = opcode;
-	}
-
-	@Override
-	public boolean test(final AbstractInsnNode insn)
-	{
-		return this.opcode == insn.getOpcode();
-	}
-}
+import mcp.MethodsReturnNonnullByDefault;

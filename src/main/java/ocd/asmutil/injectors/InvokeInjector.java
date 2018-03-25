@@ -23,7 +23,7 @@
  *
  */
 
-package ocd.asmutil;
+package ocd.asmutil.injectors;
 
 import javax.annotation.Nullable;
 
@@ -35,52 +35,53 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
 
-import ocd.asmutil.MethodSignature.MethodDescriptor;
+import ocd.asmutil.InsnInjector;
+import ocd.asmutil.frame.TrackingValue;
 
 public class InvokeInjector implements InsnInjector
 {
-	private final MethodSignature md;
-	private final boolean iface;
+	private final MethodDescriptor md;
 	private final int opcode;
 
-	public InvokeInjector(
-		final @Nullable String owner,
-		final String name,
-		final String desc,
-		final boolean obfuscated,
-		final boolean iface,
-		final boolean isStatic
-	)
+	public InvokeInjector(final MethodDescriptor md)
 	{
-		this.md = owner == null ? new MethodSignature(name, desc) : new MethodDescriptor(owner, name, desc, obfuscated);
-		this.iface = iface;
+		this.md = md;
 
-		if (isStatic)
+		if (md.isStatic)
 			this.opcode = Opcodes.INVOKESTATIC;
-		else if (iface)
+		else if (md.iface)
 			this.opcode = Opcodes.INVOKEINTERFACE;
 		else
 			this.opcode = Opcodes.INVOKEVIRTUAL;
 	}
 
 	public InvokeInjector(
+		final @Nullable String owner,
+		final String name,
+		final String desc,
+		final boolean iface,
+		final boolean isStatic
+	)
+	{
+		this(new MethodDescriptor(owner, name, desc, iface, isStatic));
+	}
+
+	public InvokeInjector(
 		@Nullable final String owner,
 		final String name,
 		final String desc,
-		final boolean obfuscated,
 		final boolean iface
 	)
 	{
-		this(owner, name, desc, obfuscated, iface, false);
+		this(owner, name, desc, iface, false);
 	}
 
 	public InvokeInjector(
 		final String name,
-		final String desc,
-		final boolean obfuscated
+		final String desc
 	)
 	{
-		this(null, name, desc, obfuscated, false);
+		this(null, name, desc, false);
 	}
 
 	@Override
@@ -92,13 +93,15 @@ public class InvokeInjector implements InsnInjector
 		final Interpreter<TrackingValue> interpreter
 	) throws AnalyzerException
 	{
-		@Nullable final String owner = this.md.owner();
-		@Nullable final String desc = this.md.desc;
+		@Nullable final String owner = this.md.owner;
 
-		if (desc == null)
-			throw new IllegalStateException("Injection with null descriptor");
-
-		final AbstractInsnNode invokeInsn = new MethodInsnNode(this.opcode, owner == null ? className : owner, this.md.name, desc, this.iface);
+		final AbstractInsnNode invokeInsn = new MethodInsnNode(
+			this.opcode,
+			owner == null ? className : owner,
+			this.md.name,
+			this.md.desc,
+			this.md.iface
+		);
 
 		methodNode.instructions.insertBefore(
 			insn,
@@ -106,5 +109,47 @@ public class InvokeInjector implements InsnInjector
 		);
 
 		frame.execute(invokeInsn, interpreter);
+	}
+
+	public static class MethodDescriptor
+	{
+		public final @Nullable String owner;
+		public final String name;
+		public final String desc;
+		public final boolean iface;
+		public final boolean isStatic;
+
+		public MethodDescriptor(
+			final @Nullable String owner,
+			final String name,
+			final String desc,
+			final boolean iface,
+			final boolean isStatic
+		)
+		{
+			this.owner = owner == null ? null : owner.replace('.', '/');
+			this.name = name;
+			this.desc = desc;
+			this.iface = iface;
+			this.isStatic = isStatic;
+		}
+
+		public MethodDescriptor(
+			final @Nullable String owner,
+			final String name,
+			final String desc,
+			final boolean iface
+		)
+		{
+			this(owner, name, desc, iface, false);
+		}
+
+		public MethodDescriptor(
+			final String name,
+			final String desc
+		)
+		{
+			this(null, name, desc, false);
+		}
 	}
 }

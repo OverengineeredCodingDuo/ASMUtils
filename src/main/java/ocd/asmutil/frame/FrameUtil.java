@@ -23,7 +23,7 @@
  *
  */
 
-package ocd.asmutil;
+package ocd.asmutil.frame;
 
 import java.util.List;
 import javax.annotation.Nullable;
@@ -40,13 +40,15 @@ import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
 import org.objectweb.asm.tree.analysis.Value;
 
+import ocd.asmutil.MethodTransformerException;
+
 public class FrameUtil
 {
-	static <V extends Value> Frame<V> getFrame(
+	public static <V extends Value> Frame<V> getFrame(
 		final @Nullable FrameNode frameNode,
 		final String className,
 		final MethodNode methodNode,
-		final V retType,
+		final @Nullable V retType,
 		final Interpreter<V> interpreter
 	) throws MethodTransformerException
 	{
@@ -79,8 +81,8 @@ public class FrameUtil
 		for (int i = 0; i < locals.size(); ++i)
 			frame.setLocal(i, getType(locals.get(i), interpreter));
 
-		for (int i = 0; i < stack.size(); ++i)
-			frame.push(getType(stack.get(i), interpreter));
+		for (final Object type : stack)
+			frame.push(getType(type, interpreter));
 
 		return frame;
 	}
@@ -90,7 +92,7 @@ public class FrameUtil
 		final Frame<V> frame,
 		final String className,
 		final MethodNode methodNode,
-		final V retType,
+		final @Nullable V retType,
 		final Interpreter<V> interpreter) throws MethodTransformerException, AnalyzerException
 	{
 		if (insn instanceof FrameNode)

@@ -23,7 +23,7 @@
  *
  */
 
-package ocd.asmutil;
+package ocd.asmutil.frame;
 
 import java.util.List;
 import javax.annotation.Nullable;
